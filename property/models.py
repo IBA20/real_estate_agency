@@ -1,10 +1,10 @@
 from django.db import models
 from django.utils import timezone
+from django.contrib.auth.models import User
+from phonenumber_field.modelfields import PhoneNumberField
 
 
 class Flat(models.Model):
-    owner = models.CharField('ФИО владельца', max_length=200)
-    owners_phonenumber = models.CharField('Номер владельца', max_length=20)
     created_at = models.DateTimeField(
         'Когда создано объявление',
         default=timezone.now,
@@ -46,6 +46,47 @@ class Flat(models.Model):
         null=True,
         blank=True,
         db_index=True)
+    new_building = models.BooleanField('Новостройка', null=True, blank=True)
+    liked_by = models.ManyToManyField(
+        User,
+        related_name='liked_flats',
+        verbose_name='Кто лайкнул',
+        blank=True
+    )
 
     def __str__(self):
         return f'{self.town}, {self.address} ({self.price}р.)'
+
+
+class Complaint(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='complaints',
+        verbose_name='Кто жаловался',
+    )
+    flat = models.ForeignKey(
+        Flat,
+        on_delete=models.CASCADE,
+        related_name='complaints',
+        verbose_name='Квартира, на которую пожаловались',
+    )
+    content = models.TextField('Текст жалобы', null=True, blank=True)
+
+
+class Owner(models.Model):
+    name = models.CharField('ФИО владельца', max_length=200, db_index=True)
+    phonenumber = models.CharField('Номер владельца', max_length=20)
+    pure_phone = PhoneNumberField(
+        'Нормализованный номер владельца',
+        blank=True,
+        db_index=True,
+    )
+    flats_owned = models.ManyToManyField(
+        Flat,
+        related_name='owners',
+        verbose_name='Квартиры в собственности',
+    )
+
+    def __str__(self):
+        return f'{self.name}, {self.pure_phone}'
