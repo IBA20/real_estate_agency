@@ -4,7 +4,11 @@ from django.db import migrations
 def make_owner_flat_relations(apps, schema_editor):
     Flat = apps.get_model('property', 'Flat')
     Owner = apps.get_model('property', 'Owner')
-    for flat in Flat.objects.all():
+    for flat in Flat.objects.only(
+            'owner',
+            'owner_pure_phone',
+            'owners_phonenumber'
+    ).iterator():
         owner, created = Owner.objects.get_or_create(
             name=flat.owner,
             pure_phone=flat.owner_pure_phone,
